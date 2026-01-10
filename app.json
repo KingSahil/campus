@@ -4,7 +4,7 @@
     "slug": "campus-app-new",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/campus.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "com.prosahil2150.campusappnew.auth0",
     "splash": {
@@ -22,7 +22,7 @@
     "android": {
       "package": "com.prosahil2150.campusappnew",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/campus.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "intentFilters": [
