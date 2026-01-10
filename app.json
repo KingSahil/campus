@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Campus App",
+    "slug": "campus-app-new",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "campusappnew",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.prosahil2150.campusappnew"
+    },
+    "android": {
+      "package": "com.prosahil2150.campusappnew",
+      "intentFilters": [
+        {
+          "autoVerify": true,
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "campusappnew",
+              "host": "com.prosahil2150.campusappnew"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b02aa5d1-fa5c-4fe9-bb42-a79a596f4f4f"
+      }
+    }
+  }
+}
