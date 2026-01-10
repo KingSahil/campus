@@ -4,8 +4,14 @@
     "slug": "campus-app-new",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/campus.png",
     "userInterfaceStyle": "light",
     "scheme": "com.prosahil2150.campusappnew.auth0",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -15,6 +21,10 @@
     },
     "android": {
       "package": "com.prosahil2150.campusappnew",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/campus.png",
+        "backgroundColor": "#ffffff"
+      },
       "intentFilters": [
         {
           "autoVerify": true,
