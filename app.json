@@ -1,57 +1,12 @@
 {
   "expo": {
-    "name": "campus-app",
-    "slug": "campusapp",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "scheme": "campusapp",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "package": "com.campusapp.app",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "data": [
-            {
-              "scheme": "campusapp",
-              "host": "supremesahil.us.auth0.com"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-web-browser",
-      "@react-native-community/datetimepicker",
-      "expo-font"
-    ],
     "extra": {
       "eas": {
-        "projectId": "e2793099-47a0-45f4-a6c4-f6a3fce890e3"
+        "projectId": "b02aa5d1-fa5c-4fe9-bb42-a79a596f4f4f"
       }
     },
-    "owner": "prosahil2150"
+    "android": {
+      "package": "com.prosahil2150.campusappnew"
+    }
   }
 }
