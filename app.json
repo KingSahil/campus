@@ -1,12 +1,69 @@
 {
   "expo": {
+    "name": "Campus App",
+    "slug": "campus-app-new",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.prosahil2150.campusappnew"
+    },
+    "android": {
+      "package": "com.prosahil2150.campusappnew",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "${auth0Scheme}",
+              "host": "${auth0Domain}",
+              "pathPrefix": "/android/${applicationId}/callback"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
     "extra": {
       "eas": {
         "projectId": "b02aa5d1-fa5c-4fe9-bb42-a79a596f4f4f"
-      }
+      },
+      "auth0Domain": "${EXPO_PUBLIC_AUTH0_DOMAIN}",
+      "auth0Scheme": "campusappnew"
     },
-    "android": {
-      "package": "com.prosahil2150.campusappnew"
-    }
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "manifestPlaceholders": {
+              "auth0Domain": "${EXPO_PUBLIC_AUTH0_DOMAIN}",
+              "auth0Scheme": "campusappnew"
+            }
+          }
+        }
+      ]
+    ]
   }
 }
