@@ -4,13 +4,7 @@
     "slug": "campus-app-new",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -19,31 +13,7 @@
       "bundleIdentifier": "com.prosahil2150.campusappnew"
     },
     "android": {
-      "package": "com.prosahil2150.campusappnew",
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "autoVerify": true,
-          "data": [
-            {
-              "scheme": "${auth0Scheme}",
-              "host": "${auth0Domain}",
-              "pathPrefix": "/android/${applicationId}/callback"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
-      ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "package": "com.prosahil2150.campusappnew"
     },
     "extra": {
       "eas": {
