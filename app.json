@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "scheme": "campusappnew",
+    "scheme": "com.prosahil2150.campusappnew.auth0",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -21,8 +21,9 @@
           "action": "VIEW",
           "data": [
             {
-              "scheme": "campusappnew",
-              "host": "com.prosahil2150.campusappnew"
+              "scheme": "com.prosahil2150.campusappnew.auth0",
+              "host": "supremesahil.us.auth0.com",
+              "pathPrefix": "/android/com.prosahil2150.campusappnew/callback"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
