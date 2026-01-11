@@ -32,7 +32,7 @@
           "data": [
             {
               "scheme": "com.prosahil2150.campusappnew",
-              "path": "/callback"
+              "pathPrefix": "/android/com.prosahil2150.campusappnew/callback"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
