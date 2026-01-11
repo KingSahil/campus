@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "com.prosahil2150.campusappnew.auth0",
+    "scheme": "com.prosahil2150.campusappnew",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -31,9 +31,8 @@
           "action": "VIEW",
           "data": [
             {
-              "scheme": "com.prosahil2150.campusappnew.auth0",
-              "host": "supremesahil.us.auth0.com",
-              "pathPrefix": "/android/com.prosahil2150.campusappnew/callback"
+              "scheme": "com.prosahil2150.campusappnew",
+              "path": "/callback"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
