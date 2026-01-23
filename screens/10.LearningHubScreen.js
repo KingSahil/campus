@@ -2,63 +2,98 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { getTopicsBySubject, createTopic } from '../lib/learningHub';
+import { getSubjects, createSubject, deleteSubject } from '../lib/learningHub';
 import Background from '../components/Background';
 
-export default function SubjectTopicsScreen({ navigation, route }) {
-    const { subject } = route.params;
-    
-    const [topics, setTopics] = useState([]);
+export default function LearningHubScreen({ navigation }) {
+    const [subjects, setSubjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
-    const [newTopicName, setNewTopicName] = useState('');
+    const [newSubjectName, setNewSubjectName] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [isDeleteMode, setIsDeleteMode] = useState(false);
 
     useEffect(() => {
-        loadTopics();
+        loadSubjects();
     }, []);
 
-    const loadTopics = async () => {
-        if (!subject?.id) return;
-        
+    const loadSubjects = async () => {
         setLoading(true);
-        const { data, error } = await getTopicsBySubject(subject.id);
-        
+        console.log('Loading subjects...');
+        const { data, error } = await getSubjects();
+
+        console.log('Subjects response:', { data, error });
+
         if (error) {
-            Alert.alert('Error', 'Failed to load topics: ' + error.message);
+            console.error('Error loading subjects:', error);
+            Alert.alert('Error', 'Failed to load subjects: ' + error.message);
+            setLoading(false);
         } else {
-            setTopics(data || []);
+            console.log('Subjects loaded:', data);
+            setSubjects(data || []);
+            setLoading(false);
         }
-        setLoading(false);
     };
 
-    const handleAddTopic = async () => {
-        if (!newTopicName.trim()) {
-            Alert.alert('Error', 'Please enter a topic name');
-            return;
-        }
-
-        if (!subject?.id) {
-            Alert.alert('Error', 'Subject information is missing');
+    const handleAddSubject = async () => {
+        if (!newSubjectName.trim()) {
+            Alert.alert('Error', 'Please enter a subject name');
             return;
         }
 
         setSubmitting(true);
-        const { data, error } = await createTopic(subject.id, newTopicName);
+        const { data, error } = await createSubject(newSubjectName);
         setSubmitting(false);
 
         if (error) {
-            Alert.alert('Error', 'Failed to add topic: ' + error.message);
+            Alert.alert('Error', 'Failed to add subject: ' + error.message);
             return;
         }
 
-        setNewTopicName('');
+        setSubjects([data, ...subjects]);
+        setNewSubjectName('');
         setModalVisible(false);
-        
-        // Reload topics to ensure fresh data from database
-        await loadTopics();
-        
-        Alert.alert('Success', 'Topic added successfully!');
+        Alert.alert('Success', 'Subject added successfully!');
+    };
+
+    const handleDeleteSubject = async (id) => {
+        if (Platform.OS === 'web') {
+            if (window.confirm('Are you sure you want to delete this subject?')) {
+                const previousSubjects = [...subjects];
+                setSubjects(subjects.filter(s => s.id !== id));
+
+                const { error } = await deleteSubject(id);
+                if (error) {
+                    setSubjects(previousSubjects);
+                    alert('Failed to delete subject: ' + error.message);
+                }
+            }
+            return;
+        }
+
+        Alert.alert(
+            'Delete Subject',
+            'Are you sure you want to delete this subject?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        // Optimistic update: filter out immediately
+                        const previousSubjects = [...subjects];
+                        setSubjects(subjects.filter(s => s.id !== id));
+
+                        const { error } = await deleteSubject(id);
+                        if (error) {
+                            // Revert if failed
+                            setSubjects(previousSubjects);
+                            Alert.alert('Error', 'Failed to delete subject');
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     return (
@@ -66,6 +101,7 @@ export default function SubjectTopicsScreen({ navigation, route }) {
             <Background />
 
             <SafeAreaView style={styles.safeArea} edges={['top']}>
+                {/* Main Content */}
                 <ScrollView
                     style={styles.scrollView}
                     showsVerticalScrollIndicator={false}
@@ -75,44 +111,71 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                         {/* Header */}
                         <View style={styles.header}>
                             <View>
-                                <Text style={styles.title}>{subject.name}</Text>
-                                <Text style={styles.subtitle}>Topics & Lessons</Text>
+                                <Text style={styles.title}>Learning Hub</Text>
+                                <Text style={styles.subtitle}>Explore your subjects</Text>
                             </View>
-                            <TouchableOpacity 
-                                style={styles.addButton} 
-                                onPress={() => setModalVisible(true)}
-                                activeOpacity={0.7}
-                            >
-                                <MaterialIcons name="add" size={24} color="#8E8E93" />
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <TouchableOpacity
+                                    style={styles.addButton}
+                                    onPress={() => setIsDeleteMode(!isDeleteMode)}
+                                    activeOpacity={0.7}
+                                >
+                                    <MaterialIcons
+                                        name={isDeleteMode ? "delete" : "delete-outline"}
+                                        size={24}
+                                        color={isDeleteMode ? "#FF3B30" : "#8E8E93"}
+                                    />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.addButton}
+                                    onPress={() => setModalVisible(true)}
+                                    activeOpacity={0.7}
+                                >
+                                    <MaterialIcons name="add" size={24} color="#8E8E93" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
-                        {/* Topics List */}
+                        {/* Subjects List */}
                         <View style={[styles.section, { marginBottom: 100 }]}        >
                             {loading ? (
                                 <View style={styles.loadingCard}>
                                     <ActivityIndicator size="large" color="#0A84FF" />
-                                    <Text style={styles.loadingText}>Loading topics...</Text>
+                                    <Text style={styles.loadingText}>Loading subjects...</Text>
                                 </View>
-                            ) : topics.length === 0 ? (
+                            ) : subjects.length === 0 ? (
                                 <View style={styles.emptyCard}>
-                                    <MaterialIcons name="topic" size={48} color="#8E8E93" />
-                                    <Text style={styles.emptyText}>No topics yet</Text>
-                                    <Text style={styles.emptySubtext}>Add your first topic to get started</Text>
+                                    <MaterialIcons name="school" size={48} color="#8E8E93" />
+                                    <Text style={styles.emptyText}>No subjects yet</Text>
+                                    <Text style={styles.emptySubtext}>Tap the + button to add your first subject</Text>
                                 </View>
                             ) : (
-                                topics.map((topic) => (
+                                subjects.map((subject) => (
                                     <TouchableOpacity
-                                        key={topic.id}
-                                        style={styles.topicCard}
-                                        onPress={() => navigation.navigate('MaterialSelect', { subject, topic })}
+                                        key={subject.id}
+                                        style={styles.subjectCard}
+                                        onPress={() => navigation.navigate('SubjectTopics', {
+                                            subject,
+                                            subjectId: subject.id,
+                                            subjectName: subject.name
+                                        })}
                                         activeOpacity={0.8}
                                     >
-                                        <View style={styles.topicInfo}>
-                                            <Text style={styles.topicName}>{topic.name}</Text>
-                                            <Text style={styles.videoCount}>{topic.video_count || 0} videos</Text>
+                                        <View style={styles.subjectInfo}>
+                                            <Text style={styles.subjectName}>{subject.name}</Text>
+                                            <Text style={styles.subjectTopics}>{subject.topics_preview || 'No topics yet'}</Text>
                                         </View>
-                                        <MaterialIcons name="chevron-right" size={24} color="#8E8E93" />
+
+                                        {isDeleteMode ? (
+                                            <TouchableOpacity
+                                                style={styles.deleteButton}
+                                                onPress={() => handleDeleteSubject(subject.id)}
+                                            >
+                                                <MaterialIcons name="delete" size={24} color="#FF3B30" />
+                                            </TouchableOpacity>
+                                        ) : (
+                                            <MaterialIcons name="chevron-right" size={24} color="#8E8E93" />
+                                        )}
                                     </TouchableOpacity>
                                 ))
                             )}
@@ -120,7 +183,7 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                     </View>
                 </ScrollView>
 
-                {/* Add Topic Modal */}
+                {/* Add Subject Modal */}
                 <Modal
                     animationType="slide"
                     transparent={true}
@@ -130,7 +193,7 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Add New Topic</Text>
+                                <Text style={styles.modalTitle}>Add New Subject</Text>
                                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                                     <MaterialIcons name="close" size={24} color="#9CA3AF" />
                                 </TouchableOpacity>
@@ -138,10 +201,10 @@ export default function SubjectTopicsScreen({ navigation, route }) {
 
                             <TextInput
                                 style={styles.input}
-                                placeholder="Topic Name"
+                                placeholder="Subject Name"
                                 placeholderTextColor="#6B7280"
-                                value={newTopicName}
-                                onChangeText={setNewTopicName}
+                                value={newSubjectName}
+                                onChangeText={setNewSubjectName}
                             />
 
                             <View style={styles.modalButtons}>
@@ -149,20 +212,20 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                                     style={[styles.modalButton, styles.cancelButton]}
                                     onPress={() => {
                                         setModalVisible(false);
-                                        setNewTopicName('');
+                                        setNewSubjectName('');
                                     }}
                                 >
                                     <Text style={styles.cancelButtonText}>Cancel</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.modalButton, styles.addModalButton]}
-                                    onPress={handleAddTopic}
+                                    onPress={handleAddSubject}
                                     disabled={submitting}
                                 >
                                     {submitting ? (
                                         <ActivityIndicator size="small" color="#fff" />
                                     ) : (
-                                        <Text style={styles.addModalButtonText}>Add Topic</Text>
+                                        <Text style={styles.addModalButtonText}>Add Subject</Text>
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -223,7 +286,7 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 32,
     },
-    topicCard: {
+    subjectCard: {
         backgroundColor: 'rgba(28, 28, 46, 0.7)',
         borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
@@ -248,16 +311,16 @@ const styles = StyleSheet.create({
             }
         }),
     },
-    topicInfo: {
+    subjectInfo: {
         flex: 1,
     },
-    topicName: {
+    subjectName: {
         fontSize: 18,
         fontWeight: '600',
         color: '#ffffff',
         marginBottom: 4,
     },
-    videoCount: {
+    subjectTopics: {
         fontSize: 14,
         color: '#8E8E93',
     },

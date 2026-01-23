@@ -14,14 +14,14 @@ const generateUUIDFromString = (str) => {
         hash = ((hash << 5) - hash) + str.charCodeAt(i);
         hash = hash & hash;
     }
-    
+
     // Convert to UUID format
     const hex = Math.abs(hash).toString(16).padStart(8, '0');
     return `${hex.substr(0, 8)}-${hex.substr(0, 4)}-4${hex.substr(0, 3)}-${hex.substr(0, 4)}-${hex.substr(0, 12)}`.padEnd(36, '0');
 };
 
-// Campus location coordinates with high precision
-const CAMPUS_LOCATION = {
+// Default campus location coordinates (fallback)
+const DEFAULT_CAMPUS_LOCATION = {
     latitude: 31.649174,
     longitude: 74.818695,
     elevation: 228, // meters above sea level
@@ -52,17 +52,17 @@ const calculateDistanceVincenty = (lat1, lon1, lat2, lon2) => {
         const sinLambda = Math.sin(lambda), cosLambda = Math.cos(lambda);
         sinSigma = Math.sqrt((cosU2 * sinLambda) * (cosU2 * sinLambda) +
             (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda) * (cosU1 * sinU2 - sinU1 * cosU2 * cosLambda));
-        
+
         if (sinSigma === 0) return 0; // Co-incident points
-        
+
         cosSigma = sinU1 * sinU2 + cosU1 * cosU2 * cosLambda;
         sigma = Math.atan2(sinSigma, cosSigma);
         const sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma;
         cosSqAlpha = 1 - sinAlpha * sinAlpha;
         cos2SigmaM = cosSigma - 2 * sinU1 * sinU2 / cosSqAlpha;
-        
+
         if (isNaN(cos2SigmaM)) cos2SigmaM = 0; // Equatorial line
-        
+
         const C = f / 16 * cosSqAlpha * (4 + f * (4 - 3 * cosSqAlpha));
         lambdaP = lambda;
         lambda = L + (1 - C) * f * sinAlpha *
@@ -84,7 +84,7 @@ const calculateDistanceVincenty = (lat1, lon1, lat2, lon2) => {
 const calculate3DDistance = (lat1, lon1, alt1, lat2, lon2, alt2) => {
     const horizontalDistance = calculateDistanceVincenty(lat1, lon1, lat2, lon2);
     const verticalDistance = Math.abs(alt2 - alt1);
-    
+
     // Pythagorean theorem for 3D distance
     return Math.sqrt(horizontalDistance * horizontalDistance + verticalDistance * verticalDistance);
 };
@@ -93,7 +93,7 @@ const calculate3DDistance = (lat1, lon1, alt1, lat2, lon2, alt2) => {
 const getAccurateLocation = async () => {
     const samples = [];
     let bestSample = null;
-    
+
     for (let i = 0; i < LOCATION_SAMPLES; i++) {
         try {
             const location = await Location.getCurrentPositionAsync({
@@ -101,17 +101,17 @@ const getAccurateLocation = async () => {
                 timeInterval: 500,
                 distanceInterval: 0,
             });
-            
+
             // Track the best sample
             if (!bestSample || (location.coords.accuracy < bestSample.coords.accuracy)) {
                 bestSample = location;
             }
-            
+
             // Collect all samples with reasonable accuracy
             if (location.coords.accuracy && location.coords.accuracy <= MAX_GPS_ACCURACY) {
                 samples.push(location);
             }
-            
+
             // Wait before next sample (except on last iteration)
             if (i < LOCATION_SAMPLES - 1) {
                 await new Promise(resolve => setTimeout(resolve, SAMPLE_DELAY));
@@ -120,17 +120,17 @@ const getAccurateLocation = async () => {
             console.error(`Sample ${i + 1} failed:`, error);
         }
     }
-    
+
     // If we have at least one good sample, use weighted average
     if (samples.length > 0) {
         // Sort by accuracy and take the best ones
         samples.sort((a, b) => (a.coords.accuracy || Infinity) - (b.coords.accuracy || Infinity));
         const bestSamples = samples.slice(0, Math.min(3, samples.length));
-        
+
         // Calculate weighted average based on accuracy (more weight to more accurate readings)
         let totalWeight = 0;
         let weightedLat = 0, weightedLon = 0, weightedAlt = 0;
-        
+
         bestSamples.forEach(sample => {
             const weight = 1 / (sample.coords.accuracy || 1); // Better accuracy = higher weight
             totalWeight += weight;
@@ -138,7 +138,7 @@ const getAccurateLocation = async () => {
             weightedLon += sample.coords.longitude * weight;
             weightedAlt += (sample.coords.altitude || 0) * weight;
         });
-        
+
         return {
             latitude: weightedLat / totalWeight,
             longitude: weightedLon / totalWeight,
@@ -148,7 +148,7 @@ const getAccurateLocation = async () => {
             samplesUsed: bestSamples.length,
         };
     }
-    
+
     // Fallback: If no samples met the threshold but we have at least one reading, use the best one
     if (bestSample) {
         console.warn(`Using fallback GPS reading with accuracy: ${bestSample.coords.accuracy}m`);
@@ -161,7 +161,7 @@ const getAccurateLocation = async () => {
             samplesUsed: 1,
         };
     }
-    
+
     // No GPS readings at all
     throw new Error('Could not get GPS readings. Please check that location services are enabled and you have moved away from buildings or indoor areas for better signal.');
 };
@@ -175,11 +175,35 @@ export default function DashboardScreen({ navigation }) {
     const [searchResults, setSearchResults] = useState([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
+    const [campusLocation, setCampusLocation] = useState(DEFAULT_CAMPUS_LOCATION);
+    const [feedbackModal, setFeedbackModal] = useState({ visible: false, title: '', message: '', type: 'info' }); // type: info, success, error, loading
 
     useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('settings')
+                    .select('value')
+                    .eq('key', 'campus_location')
+                    .single();
+
+                if (data?.value) {
+                    console.log('Using configured campus location:', data.value);
+                    setCampusLocation({
+                        latitude: data.value.latitude,
+                        longitude: data.value.longitude,
+                        elevation: data.value.elevation
+                    });
+                }
+            } catch (error) {
+                console.log('Error fetching location settings, using default:', error);
+            }
+        };
+
+        fetchSettings();
         getUserInfo();
         fetchActiveSessions();
-        
+
         // Refresh sessions every 30 seconds
         const interval = setInterval(fetchActiveSessions, 30000);
         return () => clearInterval(interval);
@@ -200,7 +224,7 @@ export default function DashboardScreen({ navigation }) {
 
     const handleSearch = async (query) => {
         setSearchQuery(query);
-        
+
         if (!query.trim()) {
             setShowSearchResults(false);
             setSearchResults([]);
@@ -246,7 +270,7 @@ export default function DashboardScreen({ navigation }) {
                 videos.forEach(video => {
                     const subjectName = video.topics?.subjects?.name || 'Unknown Subject';
                     const topicName = video.topics?.name || 'Unknown Topic';
-                    
+
                     results.push({
                         type: 'video',
                         title: video.title,
@@ -359,7 +383,7 @@ export default function DashboardScreen({ navigation }) {
         try {
             // Request location permissions
             const { status } = await Location.requestForegroundPermissionsAsync();
-            
+
             if (status !== 'granted') {
                 Alert.alert(
                     'Location Permission Required',
@@ -370,7 +394,7 @@ export default function DashboardScreen({ navigation }) {
             }
 
             // Show loading indicator
-            Alert.alert('Verifying Location', 'Getting your GPS location...');
+            setFeedbackModal({ visible: true, title: 'Verifying Location', message: 'Getting your GPS location...', type: 'loading' });
 
             // Get highly accurate location with multiple samples
             const userLocation = await getAccurateLocation();
@@ -380,9 +404,9 @@ export default function DashboardScreen({ navigation }) {
                 userLocation.latitude,
                 userLocation.longitude,
                 userLocation.altitude,
-                CAMPUS_LOCATION.latitude,
-                CAMPUS_LOCATION.longitude,
-                CAMPUS_LOCATION.elevation
+                campusLocation.latitude,
+                campusLocation.longitude,
+                campusLocation.elevation
             );
 
             console.log('High-Precision Location Verification:', {
@@ -399,15 +423,17 @@ export default function DashboardScreen({ navigation }) {
 
             // Check if user is within allowed range
             if (distance > ALLOWED_DISTANCE) {
-                Alert.alert(
-                    'Location Verification Failed',
-                    `You must be within ${ALLOWED_DISTANCE}m of campus to mark attendance.\n\nYour distance: ${distance.toFixed(1)}m\nGPS accuracy: ±${userLocation.accuracy.toFixed(1)}m\n\nPlease move closer to the campus center.`,
-                    [{ text: 'OK' }]
-                );
+                setFeedbackModal({
+                    visible: true,
+                    title: 'Location Verification Failed',
+                    message: `You must be within ${ALLOWED_DISTANCE}m of campus to mark attendance.\n\nYour distance: ${distance.toFixed(1)}m\nGPS accuracy: ±${userLocation.accuracy.toFixed(1)}m\n\nPlease move closer to the campus center.`,
+                    type: 'error'
+                });
                 return;
             }
 
             // Location verified, show custom confirmation modal
+            setFeedbackModal({ visible: false, title: '', message: '', type: 'info' }); // Close loading modal
             setConfirmModal({
                 visible: true,
                 session: session,
@@ -416,11 +442,13 @@ export default function DashboardScreen({ navigation }) {
             });
         } catch (error) {
             console.error('Location error:', error);
-            Alert.alert(
-                'Location Error',
-                error.message || 'Unable to get your location. Please make sure you have clear sky view and location services are enabled.',
-                [{ text: 'OK' }]
-            );
+            console.error('Location error:', error);
+            setFeedbackModal({
+                visible: true,
+                title: 'Location Error',
+                message: error.message || 'Unable to get your location. Please make sure you have clear sky view and location services are enabled.',
+                type: 'error'
+            });
         }
     };
 
@@ -437,6 +465,10 @@ export default function DashboardScreen({ navigation }) {
 
         try {
             // Generate a consistent student_id from email
+            if (!userEmail) {
+                Alert.alert('Error', 'User email is missing. Please sign in again.');
+                return;
+            }
             const studentId = generateUUIDFromString(userEmail);
 
             // Check if already marked
@@ -448,7 +480,7 @@ export default function DashboardScreen({ navigation }) {
                 .single();
 
             if (existingRecord) {
-                Alert.alert('Already Marked', 'You have already marked attendance for this session');
+                setFeedbackModal({ visible: true, title: 'Already Marked', message: 'You have already marked attendance for this session', type: 'info' });
                 return;
             }
 
@@ -469,18 +501,24 @@ export default function DashboardScreen({ navigation }) {
 
             if (error) {
                 console.error('Error marking attendance:', error);
-                Alert.alert('Error', 'Failed to mark attendance. Please try again.');
+                setFeedbackModal({ visible: true, title: 'Error', message: 'Failed to mark attendance. Please try again.', type: 'error' });
                 return;
             }
 
-            Alert.alert(
-                'Success', 
-                `Attendance marked successfully!\n\nVerified distance: ${distance}m\nGPS accuracy: ±${accuracy}m`
-            );
+            setFeedbackModal({
+                visible: true,
+                title: 'Success',
+                message: `Attendance marked successfully!\n\nVerified distance: ${distance}m\nGPS accuracy: ±${accuracy}m`,
+                type: 'success'
+            });
         } catch (error) {
             console.error('Error:', error);
-            Alert.alert('Error', 'Failed to mark attendance');
+            setFeedbackModal({ visible: true, title: 'Error', message: 'Failed to mark attendance', type: 'error' });
         }
+    };
+
+    const closeFeedbackModal = () => {
+        setFeedbackModal(prev => ({ ...prev, visible: false }));
     };
 
     const quickAccessItems = [
@@ -488,7 +526,7 @@ export default function DashboardScreen({ navigation }) {
         { icon: 'menu-book', label: 'Learning', color: '#06B6D4', onPress: () => navigation.navigate('LearningHub') },
         { icon: 'restaurant', label: 'Food', color: '#EF4444' },
         { icon: 'local-library', label: 'Library', color: '#10B981' },
-        { icon: 'campaign', label: 'Student Voice', color: '#A855F7' },        
+        { icon: 'campaign', label: 'Student Voice', color: '#A855F7' },
         { icon: 'storefront', label: 'Campus Marketplace', color: '#EC4899' },
 
     ];
@@ -508,20 +546,20 @@ export default function DashboardScreen({ navigation }) {
                                 </Text>
                             </View>
                             <View style={styles.headerButtons}>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.notificationButton}
                                     onPress={() => navigation.navigate('Notices')}
                                 >
                                     <MaterialIcons name="notifications" size={24} color="#ffffff" />
                                 </TouchableOpacity>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     style={styles.profilePicContainer}
                                     onPress={() => navigation.navigate('ProfileDetail')}
                                 >
                                     <Image
-                                        source={{ 
-                                            uri: user?.picture || 
-                                            'https://lh3.googleusercontent.com/aida-public/AB6AXuC_UmOn2Ca2nFEDCfiijmx_SEi5EH7D2Y6catOJoHdc88XpwtWj5zuuQ5dwNK3a7Vj-26z0EWTwIWx9VZAGwkLntb__QkElZ01Us3OAPD9MqMORkDD0exnYBC5tsdW0CqAXJPvj5vQ2xXB5z23WE7ht34HAKNIQ2JaMajtyMPmUoBdGtODTxv_B148bL522wslFyfrgwmODlqI6XuD9T1Go9MhoAdT0_OCGvuW7aPDZeK-3c0mk5T1l3noLxaYZqL_N6G4BNePt4Xs' 
+                                        source={{
+                                            uri: user?.picture ||
+                                                'https://lh3.googleusercontent.com/aida-public/AB6AXuC_UmOn2Ca2nFEDCfiijmx_SEi5EH7D2Y6catOJoHdc88XpwtWj5zuuQ5dwNK3a7Vj-26z0EWTwIWx9VZAGwkLntb__QkElZ01Us3OAPD9MqMORkDD0exnYBC5tsdW0CqAXJPvj5vQ2xXB5z23WE7ht34HAKNIQ2JaMajtyMPmUoBdGtODTxv_B148bL522wslFyfrgwmODlqI6XuD9T1Go9MhoAdT0_OCGvuW7aPDZeK-3c0mk5T1l3noLxaYZqL_N6G4BNePt4Xs'
                                         }}
                                         style={styles.profilePic}
                                     />
@@ -541,7 +579,7 @@ export default function DashboardScreen({ navigation }) {
                                 returnKeyType="search"
                             />
                             {searchQuery.length > 0 && (
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={() => {
                                         setSearchQuery('');
                                         setShowSearchResults(false);
@@ -571,7 +609,7 @@ export default function DashboardScreen({ navigation }) {
                                 ) : (
                                     <ScrollView style={styles.searchResultsList} nestedScrollEnabled>
                                         {searchResults.map((result, index) => (
-                                            <TouchableOpacity 
+                                            <TouchableOpacity
                                                 key={index}
                                                 style={styles.searchResultItem}
                                                 onPress={result.action}
@@ -595,14 +633,14 @@ export default function DashboardScreen({ navigation }) {
                         <View style={styles.section}>
                             <View style={styles.sectionHeader}>
                                 <Text style={styles.sectionTitle}>Active Sessions</Text>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     onPress={fetchActiveSessions}
                                     activeOpacity={0.7}
                                 >
                                     <MaterialIcons name="refresh" size={20} color="#8E8E93" />
                                 </TouchableOpacity>
                             </View>
-                            
+
                             {loadingSessions ? (
                                 <View style={styles.loadingCard}>
                                     <ActivityIndicator color="#0A84FF" />
@@ -626,7 +664,7 @@ export default function DashboardScreen({ navigation }) {
                                                     {session.classes?.subject || session.classes?.name || 'Class'}
                                                 </Text>
                                                 <Text style={styles.attendanceTime}>
-                                                    {session.classes?.start_time && session.classes?.end_time 
+                                                    {session.classes?.start_time && session.classes?.end_time
                                                         ? `${formatTime(session.classes.start_time)} - ${formatTime(session.classes.end_time)}`
                                                         : 'Active Now'
                                                     }
@@ -639,8 +677,8 @@ export default function DashboardScreen({ navigation }) {
                                                 )}
                                             </View>
                                         </View>
-                                        <TouchableOpacity 
-                                            style={styles.markButton} 
+                                        <TouchableOpacity
+                                            style={styles.markButton}
                                             activeOpacity={0.8}
                                             onPress={() => handleMarkAttendance(session)}
                                         >
@@ -684,9 +722,9 @@ export default function DashboardScreen({ navigation }) {
                             <View style={styles.modalHeader}>
                                 <MaterialIcons name="check-circle" size={48} color="#10B981" />
                             </View>
-                            
+
                             <Text style={styles.modalTitle}>Mark Attendance</Text>
-                            
+
                             <View style={styles.modalInfo}>
                                 <View style={styles.infoRow}>
                                     <MaterialIcons name="location-on" size={20} color="#10B981" />
@@ -722,6 +760,37 @@ export default function DashboardScreen({ navigation }) {
                                     <Text style={styles.confirmButtonText}>Mark Attendance</Text>
                                 </TouchableOpacity>
                             </View>
+                        </View>
+                    </View>
+                </Modal>
+
+                {/* Feedback Modal (Loading/Success/Error) */}
+                <Modal
+                    animationType="fade"
+                    transparent={true}
+                    visible={feedbackModal.visible}
+                    onRequestClose={closeFeedbackModal}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                {feedbackModal.type === 'loading' && <ActivityIndicator size="large" color="#0A84FF" />}
+                                {feedbackModal.type === 'success' && <MaterialIcons name="check-circle" size={48} color="#10B981" />}
+                                {feedbackModal.type === 'error' && <MaterialIcons name="error" size={48} color="#EF4444" />}
+                                {feedbackModal.type === 'info' && <MaterialIcons name="info" size={48} color="#0A84FF" />}
+                            </View>
+
+                            <Text style={styles.modalTitle}>{feedbackModal.title}</Text>
+                            <Text style={styles.modalMessage}>{feedbackModal.message}</Text>
+
+                            {feedbackModal.type !== 'loading' && (
+                                <TouchableOpacity
+                                    style={[styles.modalButton, styles.confirmButton, { width: '100%' }]}
+                                    onPress={closeFeedbackModal}
+                                >
+                                    <Text style={styles.confirmButtonText}>OK</Text>
+                                </TouchableOpacity>
+                            )}
                         </View>
                     </View>
                 </Modal>
@@ -956,6 +1025,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 20,
+        zIndex: 9999, // Ensure modal is above everything on web
     },
     modalContent: {
         backgroundColor: 'rgba(28, 28, 46, 0.98)',

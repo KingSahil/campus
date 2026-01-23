@@ -8,27 +8,27 @@ import { auth0 } from './lib/auth0';
 import { supabase } from './lib/supabase';
 
 import Background from './components/Background';
-import SignInScreen from './screens/SignInScreen';
-import SignUpScreen from './screens/Profile';
-import ProfileEnterScreen from './screens/ProfileEnterScreen';
-import ProfileDetailScreen from './screens/ProfileDetailScreen';
-import GetStartedScreen from './screens/GetStartedScreen';
-import DashboardScreen from './screens/DashboardScreen';
-import AdminDashboardScreen from './screens/AdminDashboardScreen';
-import AttendanceAdminScreen from './screens/AttendanceAdminScreen';
-import ManageAttendanceScreen from './screens/ManageAttendanceScreen';
-import AttendanceListScreen from './screens/AttendanceListScreen';
-import StudentAttendanceScreen from './screens/StudentAttendanceScreen';
-import NoticesScreen from './screens/NoticesScreen';
-import LearningHubScreen from './screens/LearningHubScreen';
-import SubjectTopicsScreen from './screens/SubjectTopicsScreen';
-import MaterialSelectScreen from './screens/MaterialSelectScreen';
-import VideosListScreen from './screens/VideosListScreen';
-import LectureVideoScreen from './screens/LectureVideoScreen';
-import NotesListScreen from './screens/NotesListScreen';
-import NoteDetailScreen from './screens/NoteDetailScreen';
-import QuestionsListScreen from './screens/QuestionsListScreen';
-import QuestionDetailScreen from './screens/QuestionDetailScreen';
+import SignInScreen from './screens/1.SignInScreen';
+import SignUpScreen from './screens/2.ProfileScreen';
+import ProfileEnterScreen from './screens/3.ProfileEnterScreen';
+import ProfileDetailScreen from './screens/4.ProfileDetailScreen';
+import GetStartedScreen from './screens/5.GetStartedScreen';
+import DashboardScreen from './screens/6.DashboardScreen';
+import AdminDashboardScreen from './screens/7.AdminDashboardScreen';
+import AttendanceAdminScreen from './screens/19.AttendanceAdminScreen';
+import ManageAttendanceScreen from './screens/20.ManageAttendanceScreen';
+import AttendanceListScreen from './screens/21.AttendanceListScreen';
+import StudentAttendanceScreen from './screens/8.StudentAttendanceScreen';
+import NoticesScreen from './screens/9.NoticesScreen';
+import LearningHubScreen from './screens/10.LearningHubScreen';
+import SubjectTopicsScreen from './screens/11.SubjectTopicsScreen';
+import MaterialSelectScreen from './screens/12.MaterialSelectScreen';
+import VideosListScreen from './screens/13.VideosListScreen';
+import LectureVideoScreen from './screens/14.LectureVideoScreen';
+import NotesListScreen from './screens/15.NotesListScreen';
+import NoteDetailScreen from './screens/16.NoteDetailScreen';
+import QuestionsListScreen from './screens/17.QuestionsListScreen';
+import QuestionDetailScreen from './screens/18.QuestionDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -103,11 +103,11 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>      
+    <SafeAreaProvider>
       <View style={styles.container}>
         <StatusBar style="light" />
-        <Background /> 
-        
+        <Background />
+
 
         <NavigationContainer linking={linking}>
           <Stack.Navigator

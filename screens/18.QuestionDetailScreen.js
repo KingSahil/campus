@@ -8,16 +8,19 @@ import { auth0 } from '../lib/auth0';
 import Background from '../components/Background';
 
 export default function QuestionDetailScreen({ navigation, route }) {
-    const { question, subject, topic } = route.params;
-    
+    const { question, subjectId, subjectName, topicId, topicName, subject: subjectObj, topic: topicObj } = route.params || {};
+
+    const subject = subjectObj || { id: subjectId, name: subjectName };
+    const topic = topicObj || { id: topicId, name: topicName };
+
     const [activeTab, setActiveTab] = useState('question');
     const [user, setUser] = useState(null);
-    
+
     // Upvote states
     const [upvoteCount, setUpvoteCount] = useState(question.upvotes || 0);
     const [hasUpvoted, setHasUpvoted] = useState(false);
     const [loadingUpvote, setLoadingUpvote] = useState(false);
-    
+
     // Discussion states
     const [discussions, setDiscussions] = useState([]);
     const [loadingDiscussions, setLoadingDiscussions] = useState(false);
@@ -25,7 +28,7 @@ export default function QuestionDetailScreen({ navigation, route }) {
     const [replyTo, setReplyTo] = useState(null);
     const [replyText, setReplyText] = useState('');
     const [expandedThreads, setExpandedThreads] = useState({});
-    
+
     // Ask AI states
     const [aiSolution, setAiSolution] = useState('');
     const [loadingAI, setLoadingAI] = useState(false);
@@ -35,7 +38,7 @@ export default function QuestionDetailScreen({ navigation, route }) {
         getUserInfo();
         fetchUpvotes();
         fetchDiscussions();
-        
+
         const keyboardDidShowListener = Keyboard.addListener(
             'keyboardDidShow',
             () => setKeyboardVisible(true)
@@ -44,7 +47,7 @@ export default function QuestionDetailScreen({ navigation, route }) {
             'keyboardDidHide',
             () => setKeyboardVisible(false)
         );
-        
+
         return () => {
             keyboardDidShowListener.remove();
             keyboardDidHideListener.remove();
@@ -265,7 +268,7 @@ export default function QuestionDetailScreen({ navigation, route }) {
         setLoadingAI(true);
         try {
             const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-            
+
             const response = await fetch(`${BACKEND_URL}/ai-question-solution`, {
                 method: 'POST',
                 headers: {
@@ -285,7 +288,7 @@ export default function QuestionDetailScreen({ navigation, route }) {
             }
 
             const data = await response.json();
-            
+
             if (data.solution) {
                 setAiSolution(data.solution);
             } else {
@@ -307,9 +310,9 @@ export default function QuestionDetailScreen({ navigation, route }) {
                         {question.question_type === 'pyq' ? 'Previous Year Question' : 'Theory Question'}
                     </Text>
                 </View>
-                
+
                 <Text style={styles.questionText}>{question.question}</Text>
-                
+
                 {question.answer && (
                     <View style={styles.answerContainer}>
                         <Text style={styles.answerTitle}>Answer:</Text>
@@ -341,7 +344,7 @@ export default function QuestionDetailScreen({ navigation, route }) {
                                         </Text>
                                     </View>
                                     <Text style={styles.discussionMessage}>{discussion.message}</Text>
-                                    
+
                                     <TouchableOpacity
                                         onPress={() => toggleThread(discussion.id)}
                                         style={styles.replyButton}
@@ -365,7 +368,7 @@ export default function QuestionDetailScreen({ navigation, route }) {
                                                     <Text style={styles.discussionMessage}>{reply.message}</Text>
                                                 </View>
                                             ))}
-                                            
+
                                             {replyTo === discussion.id ? (
                                                 <View style={styles.replyInputContainer}>
                                                     <TextInput
@@ -424,10 +427,10 @@ export default function QuestionDetailScreen({ navigation, route }) {
                                 style={styles.sendButton}
                                 disabled={!newMessage.trim()}
                             >
-                                <MaterialIcons 
-                                    name="send" 
-                                    size={24} 
-                                    color={newMessage.trim() ? '#0A84FF' : '#6B7280'} 
+                                <MaterialIcons
+                                    name="send"
+                                    size={24}
+                                    color={newMessage.trim() ? '#0A84FF' : '#6B7280'}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -486,7 +489,7 @@ export default function QuestionDetailScreen({ navigation, route }) {
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.backButton}
                         onPress={() => navigation.goBack()}
                     >
@@ -504,10 +507,10 @@ export default function QuestionDetailScreen({ navigation, route }) {
                             <ActivityIndicator size="small" color="#0A84FF" />
                         ) : (
                             <>
-                                <MaterialIcons 
-                                    name={hasUpvoted ? "arrow-upward" : "arrow-upward"} 
-                                    size={20} 
-                                    color={hasUpvoted ? "#fff" : "#0A84FF"} 
+                                <MaterialIcons
+                                    name={hasUpvoted ? "arrow-upward" : "arrow-upward"}
+                                    size={20}
+                                    color={hasUpvoted ? "#fff" : "#0A84FF"}
                                 />
                                 <Text style={[styles.upvoteText, hasUpvoted && styles.upvoteTextActive]}>
                                     {upvoteCount}

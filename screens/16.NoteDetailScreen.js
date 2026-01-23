@@ -8,16 +8,19 @@ import { auth0 } from '../lib/auth0';
 import Background from '../components/Background';
 
 export default function NoteDetailScreen({ navigation, route }) {
-    const { note, subject, topic } = route.params;
-    
+    const { note, subjectId, subjectName, topicId, topicName, subject: subjectObj, topic: topicObj } = route.params || {};
+
+    const subject = subjectObj || { id: subjectId, name: subjectName };
+    const topic = topicObj || { id: topicId, name: topicName };
+
     const [activeTab, setActiveTab] = useState('content');
     const [user, setUser] = useState(null);
-    
+
     // Upvote states
     const [upvoteCount, setUpvoteCount] = useState(note.upvotes || 0);
     const [hasUpvoted, setHasUpvoted] = useState(false);
     const [loadingUpvote, setLoadingUpvote] = useState(false);
-    
+
     // Discussion states
     const [discussions, setDiscussions] = useState([]);
     const [loadingDiscussions, setLoadingDiscussions] = useState(false);
@@ -25,7 +28,7 @@ export default function NoteDetailScreen({ navigation, route }) {
     const [replyTo, setReplyTo] = useState(null);
     const [replyText, setReplyText] = useState('');
     const [expandedThreads, setExpandedThreads] = useState({});
-    
+
     // Ask AI states
     const [userQuestion, setUserQuestion] = useState('');
     const [aiAnswer, setAiAnswer] = useState('');
@@ -36,7 +39,7 @@ export default function NoteDetailScreen({ navigation, route }) {
         getUserInfo();
         fetchUpvotes();
         fetchDiscussions();
-        
+
         const keyboardDidShowListener = Keyboard.addListener(
             'keyboardDidShow',
             () => setKeyboardVisible(true)
@@ -45,7 +48,7 @@ export default function NoteDetailScreen({ navigation, route }) {
             'keyboardDidHide',
             () => setKeyboardVisible(false)
         );
-        
+
         return () => {
             keyboardDidShowListener.remove();
             keyboardDidHideListener.remove();
@@ -272,7 +275,7 @@ export default function NoteDetailScreen({ navigation, route }) {
         setLoadingAI(true);
         try {
             const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-            
+
             const response = await fetch(`${BACKEND_URL}/ai-note-question`, {
                 method: 'POST',
                 headers: {
@@ -292,7 +295,7 @@ export default function NoteDetailScreen({ navigation, route }) {
             }
 
             const data = await response.json();
-            
+
             if (data.answer) {
                 setAiAnswer(data.answer);
             } else {
@@ -333,7 +336,7 @@ export default function NoteDetailScreen({ navigation, route }) {
                                         </Text>
                                     </View>
                                     <Text style={styles.discussionMessage}>{discussion.message}</Text>
-                                    
+
                                     <TouchableOpacity
                                         onPress={() => toggleThread(discussion.id)}
                                         style={styles.replyButton}
@@ -357,7 +360,7 @@ export default function NoteDetailScreen({ navigation, route }) {
                                                     <Text style={styles.discussionMessage}>{reply.message}</Text>
                                                 </View>
                                             ))}
-                                            
+
                                             {replyTo === discussion.id ? (
                                                 <View style={styles.replyInputContainer}>
                                                     <TextInput
@@ -416,10 +419,10 @@ export default function NoteDetailScreen({ navigation, route }) {
                                 style={styles.sendButton}
                                 disabled={!newMessage.trim()}
                             >
-                                <MaterialIcons 
-                                    name="send" 
-                                    size={24} 
-                                    color={newMessage.trim() ? '#0A84FF' : '#6B7280'} 
+                                <MaterialIcons
+                                    name="send"
+                                    size={24}
+                                    color={newMessage.trim() ? '#0A84FF' : '#6B7280'}
                                 />
                             </TouchableOpacity>
                         </View>
@@ -430,7 +433,7 @@ export default function NoteDetailScreen({ navigation, route }) {
     );
 
     const renderAskAI = () => (
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
             style={styles.tabContent}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
@@ -478,7 +481,7 @@ export default function NoteDetailScreen({ navigation, route }) {
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.backButton}
                         onPress={() => navigation.goBack()}
                     >
@@ -496,10 +499,10 @@ export default function NoteDetailScreen({ navigation, route }) {
                             <ActivityIndicator size="small" color="#0A84FF" />
                         ) : (
                             <>
-                                <MaterialIcons 
-                                    name={hasUpvoted ? "arrow-upward" : "arrow-upward"} 
-                                    size={20} 
-                                    color={hasUpvoted ? "#fff" : "#0A84FF"} 
+                                <MaterialIcons
+                                    name={hasUpvoted ? "arrow-upward" : "arrow-upward"}
+                                    size={20}
+                                    color={hasUpvoted ? "#fff" : "#0A84FF"}
                                 />
                                 <Text style={[styles.upvoteText, hasUpvoted && styles.upvoteTextActive]}>
                                     {upvoteCount}

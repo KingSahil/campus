@@ -7,8 +7,18 @@ import { auth0 } from '../lib/auth0';
 import Background from '../components/Background';
 
 export default function NotesListScreen({ navigation, route }) {
-    const { subject, topic } = route.params;
-    
+    const { subjectId, subjectName, topicId, topicName, subject: subjectObj, topic: topicObj } = route.params || {};
+
+    let subject = subjectObj;
+    if (!subject || subject === '[object Object]') {
+        subject = { id: subjectId, name: subjectName };
+    }
+
+    let topic = topicObj;
+    if (!topic || topic === '[object Object]') {
+        topic = { id: topicId, name: topicName };
+    }
+
     const [notes, setNotes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
@@ -16,6 +26,7 @@ export default function NotesListScreen({ navigation, route }) {
     const [newNoteContent, setNewNoteContent] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [user, setUser] = useState(null);
+    const [isDeleteMode, setIsDeleteMode] = useState(false);
 
     useEffect(() => {
         getUserInfo();
@@ -34,7 +45,7 @@ export default function NotesListScreen({ navigation, route }) {
 
     const loadNotes = async () => {
         if (!topic?.id) return;
-        
+
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -42,7 +53,7 @@ export default function NotesListScreen({ navigation, route }) {
                 .select('*')
                 .eq('topic_id', topic.id)
                 .order('upvotes', { ascending: false });
-            
+
             if (error) throw error;
             setNotes(data || []);
         } catch (error) {
@@ -97,6 +108,51 @@ export default function NotesListScreen({ navigation, route }) {
         }
     };
 
+    const handleDeleteNote = async (id) => {
+        if (Platform.OS === 'web') {
+            if (window.confirm('Are you sure you want to delete this note?')) {
+                const previousNotes = [...notes];
+                setNotes(notes.filter(n => n.id !== id));
+
+                const { error } = await supabase
+                    .from('notes')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
+                    setNotes(previousNotes);
+                    alert('Failed to delete note: ' + error.message);
+                }
+            }
+            return;
+        }
+        Alert.alert(
+            'Delete Note',
+            'Are you sure you want to delete this note?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        const previousNotes = [...notes];
+                        setNotes(notes.filter(n => n.id !== id));
+
+                        const { error } = await supabase
+                            .from('notes')
+                            .delete()
+                            .eq('id', id);
+
+                        if (error) {
+                            setNotes(previousNotes);
+                            Alert.alert('Error', 'Failed to delete note');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     return (
         <View style={styles.container}>
             <Background />
@@ -110,7 +166,7 @@ export default function NotesListScreen({ navigation, route }) {
                     <View style={styles.contentColumn}>
                         {/* Header */}
                         <View style={styles.header}>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.backButton}
                                 onPress={() => navigation.goBack()}
                                 activeOpacity={0.7}
@@ -121,13 +177,26 @@ export default function NotesListScreen({ navigation, route }) {
                                 <Text style={styles.title}>Notes</Text>
                                 <Text style={styles.subtitle}>{topic.name}</Text>
                             </View>
-                            <TouchableOpacity 
-                                style={styles.addButton}
-                                onPress={() => setModalVisible(true)}
-                                activeOpacity={0.7}
-                            >
-                                <MaterialIcons name="add" size={24} color="#8E8E93" />
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <TouchableOpacity
+                                    style={styles.addButton}
+                                    onPress={() => setIsDeleteMode(!isDeleteMode)}
+                                    activeOpacity={0.7}
+                                >
+                                    <MaterialIcons
+                                        name={isDeleteMode ? "delete" : "delete-outline"}
+                                        size={24}
+                                        color={isDeleteMode ? "#FF3B30" : "#8E8E93"}
+                                    />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.addButton}
+                                    onPress={() => setModalVisible(true)}
+                                    activeOpacity={0.7}
+                                >
+                                    <MaterialIcons name="add" size={24} color="#8E8E93" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         {/* Notes List */}
@@ -148,7 +217,13 @@ export default function NotesListScreen({ navigation, route }) {
                                     <TouchableOpacity
                                         key={note.id}
                                         style={styles.noteCard}
-                                        onPress={() => navigation.navigate('NoteDetail', { note, subject, topic })}
+                                        onPress={() => navigation.navigate('NoteDetail', {
+                                            note,
+                                            subjectId: subject.id,
+                                            subjectName: subject.name,
+                                            topicId: topic.id,
+                                            topicName: topic.name
+                                        })}
                                         activeOpacity={0.8}
                                     >
                                         <View style={styles.noteContent}>
@@ -163,7 +238,16 @@ export default function NotesListScreen({ navigation, route }) {
                                                     <MaterialIcons name="arrow-upward" size={16} color="#0A84FF" />
                                                     <Text style={styles.upvoteCount}>{note.upvotes || 0}</Text>
                                                 </View>
-                                                <MaterialIcons name="chevron-right" size={24} color="#8E8E93" />
+                                                {isDeleteMode ? (
+                                                    <TouchableOpacity
+                                                        style={styles.deleteButton}
+                                                        onPress={() => handleDeleteNote(note.id)}
+                                                    >
+                                                        <MaterialIcons name="delete" size={24} color="#FF3B30" />
+                                                    </TouchableOpacity>
+                                                ) : (
+                                                    <MaterialIcons name="chevron-right" size={24} color="#8E8E93" />
+                                                )}
                                             </View>
                                         </View>
                                     </TouchableOpacity>

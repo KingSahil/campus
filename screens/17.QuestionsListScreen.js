@@ -7,8 +7,18 @@ import { auth0 } from '../lib/auth0';
 import Background from '../components/Background';
 
 export default function QuestionsListScreen({ navigation, route }) {
-    const { subject, topic } = route.params;
-    
+    const { subjectId, subjectName, topicId, topicName, subject: subjectObj, topic: topicObj } = route.params || {};
+
+    let subject = subjectObj;
+    if (!subject || subject === '[object Object]') {
+        subject = { id: subjectId, name: subjectName };
+    }
+
+    let topic = topicObj;
+    if (!topic || topic === '[object Object]') {
+        topic = { id: topicId, name: topicName };
+    }
+
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
@@ -18,6 +28,7 @@ export default function QuestionsListScreen({ navigation, route }) {
     const [questionType, setQuestionType] = useState('theory');
     const [submitting, setSubmitting] = useState(false);
     const [user, setUser] = useState(null);
+    const [isDeleteMode, setIsDeleteMode] = useState(false);
 
     useEffect(() => {
         getUserInfo();
@@ -36,7 +47,7 @@ export default function QuestionsListScreen({ navigation, route }) {
 
     const loadQuestions = async () => {
         if (!topic?.id) return;
-        
+
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -44,7 +55,7 @@ export default function QuestionsListScreen({ navigation, route }) {
                 .select('*')
                 .eq('topic_id', topic.id)
                 .order('upvotes', { ascending: false });
-            
+
             if (error) throw error;
             setQuestions(data || []);
         } catch (error) {
@@ -103,6 +114,51 @@ export default function QuestionsListScreen({ navigation, route }) {
         }
     };
 
+    const handleDeleteQuestion = async (id) => {
+        if (Platform.OS === 'web') {
+            if (window.confirm('Are you sure you want to delete this question?')) {
+                const previousQuestions = [...questions];
+                setQuestions(questions.filter(q => q.id !== id));
+
+                const { error } = await supabase
+                    .from('questions')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) {
+                    setQuestions(previousQuestions);
+                    alert('Failed to delete question: ' + error.message);
+                }
+            }
+            return;
+        }
+        Alert.alert(
+            'Delete Question',
+            'Are you sure you want to delete this question?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        const previousQuestions = [...questions];
+                        setQuestions(questions.filter(q => q.id !== id));
+
+                        const { error } = await supabase
+                            .from('questions')
+                            .delete()
+                            .eq('id', id);
+
+                        if (error) {
+                            setQuestions(previousQuestions);
+                            Alert.alert('Error', 'Failed to delete question');
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     return (
         <View style={styles.container}>
             <Background />
@@ -116,7 +172,7 @@ export default function QuestionsListScreen({ navigation, route }) {
                     <View style={styles.contentColumn}>
                         {/* Header */}
                         <View style={styles.header}>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.backButton}
                                 onPress={() => navigation.goBack()}
                                 activeOpacity={0.7}
@@ -127,13 +183,26 @@ export default function QuestionsListScreen({ navigation, route }) {
                                 <Text style={styles.title}>Questions / PYQ</Text>
                                 <Text style={styles.subtitle}>{topic.name}</Text>
                             </View>
-                            <TouchableOpacity 
-                                style={styles.addButton}
-                                onPress={() => setModalVisible(true)}
-                                activeOpacity={0.7}
-                            >
-                                <MaterialIcons name="add" size={24} color="#8E8E93" />
-                            </TouchableOpacity>
+                            <View style={{ flexDirection: 'row', gap: 12 }}>
+                                <TouchableOpacity
+                                    style={styles.addButton}
+                                    onPress={() => setIsDeleteMode(!isDeleteMode)}
+                                    activeOpacity={0.7}
+                                >
+                                    <MaterialIcons
+                                        name={isDeleteMode ? "delete" : "delete-outline"}
+                                        size={24}
+                                        color={isDeleteMode ? "#FF3B30" : "#8E8E93"}
+                                    />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.addButton}
+                                    onPress={() => setModalVisible(true)}
+                                    activeOpacity={0.7}
+                                >
+                                    <MaterialIcons name="add" size={24} color="#8E8E93" />
+                                </TouchableOpacity>
+                            </View>
                         </View>
 
                         {/* Questions List */}
@@ -154,7 +223,13 @@ export default function QuestionsListScreen({ navigation, route }) {
                                     <TouchableOpacity
                                         key={question.id}
                                         style={styles.questionCard}
-                                        onPress={() => navigation.navigate('QuestionDetail', { question, subject, topic })}
+                                        onPress={() => navigation.navigate('QuestionDetail', {
+                                            question,
+                                            subjectId: subject.id,
+                                            subjectName: subject.name,
+                                            topicId: topic.id,
+                                            topicName: topic.name
+                                        })}
                                         activeOpacity={0.8}
                                     >
                                         <View style={styles.questionContent}>
@@ -176,7 +251,16 @@ export default function QuestionsListScreen({ navigation, route }) {
                                                     <MaterialIcons name="arrow-upward" size={16} color="#0A84FF" />
                                                     <Text style={styles.upvoteCount}>{question.upvotes || 0}</Text>
                                                 </View>
-                                                <MaterialIcons name="chevron-right" size={24} color="#8E8E93" />
+                                                {isDeleteMode ? (
+                                                    <TouchableOpacity
+                                                        style={styles.deleteButton}
+                                                        onPress={() => handleDeleteQuestion(question.id)}
+                                                    >
+                                                        <MaterialIcons name="delete" size={24} color="#FF3B30" />
+                                                    </TouchableOpacity>
+                                                ) : (
+                                                    <MaterialIcons name="chevron-right" size={24} color="#8E8E93" />
+                                                )}
                                             </View>
                                         </View>
                                     </TouchableOpacity>
@@ -194,7 +278,7 @@ export default function QuestionsListScreen({ navigation, route }) {
                     onRequestClose={() => setModalVisible(false)}
                 >
                     <View style={styles.modalOverlay}>
-                        <ScrollView 
+                        <ScrollView
                             contentContainerStyle={styles.modalScrollContent}
                             showsVerticalScrollIndicator={false}
                         >

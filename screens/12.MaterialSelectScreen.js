@@ -1,14 +1,17 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import Background from '../components/Background';
 
 export default function MaterialSelectScreen({ navigation, route }) {
-    const { subject, topic } = route.params || {};
+    const { subjectId, subjectName, topicId, topicName, subject: subjectObj, topic: topicObj } = route.params || {};
+
+    const subject = subjectObj || { id: subjectId, name: subjectName };
+    const topic = topicObj || { id: topicId, name: topicName };
 
     // Handle missing params
-    if (!subject || !topic) {
+    if (!subject.id || !topic.id) {
         return (
             <View style={styles.container}>
                 <Background />
@@ -16,12 +19,6 @@ export default function MaterialSelectScreen({ navigation, route }) {
                     <View style={[styles.contentColumn, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
                         <MaterialIcons name="error-outline" size={48} color="#8E8E93" />
                         <Text style={styles.emptyText}>Missing subject or topic information</Text>
-                        <TouchableOpacity 
-                            style={styles.backButton}
-                            onPress={() => navigation.goBack()}
-                        >
-                            <Text style={styles.materialSubtitle}>Go Back</Text>
-                        </TouchableOpacity>
                     </View>
                 </SafeAreaView>
             </View>
@@ -65,13 +62,6 @@ export default function MaterialSelectScreen({ navigation, route }) {
                     <View style={styles.contentColumn}>
                         {/* Header */}
                         <View style={styles.header}>
-                            <TouchableOpacity 
-                                style={styles.backButton}
-                                onPress={() => navigation.goBack()}
-                                activeOpacity={0.7}
-                            >
-                                <MaterialIcons name="arrow-back-ios" size={24} color="#8E8E93" />
-                            </TouchableOpacity>
                             <View style={styles.headerText}>
                                 <Text style={styles.title}>{topic.name}</Text>
                                 <Text style={styles.subtitle}>{subject.name}</Text>
@@ -85,7 +75,12 @@ export default function MaterialSelectScreen({ navigation, route }) {
                                 <TouchableOpacity
                                     key={material.id}
                                     style={styles.materialCard}
-                                    onPress={() => navigation.navigate(material.route, { subject, topic })}
+                                    onPress={() => navigation.navigate(material.route, {
+                                        subjectId: subject.id,
+                                        subjectName: subject.name,
+                                        topicId: topic.id,
+                                        topicName: topic.name
+                                    })}
                                     activeOpacity={0.8}
                                 >
                                     <View style={styles.materialContent}>
@@ -168,11 +163,20 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 12,
         padding: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 2,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+            },
+            android: {
+                elevation: 2,
+            },
+            web: {
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }
+        }),
     },
     materialContent: {
         flexDirection: 'row',
