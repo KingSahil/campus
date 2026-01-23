@@ -2,63 +2,99 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Modal, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { getTopicsBySubject, createTopic } from '../lib/learningHub';
+import { supabase } from '../lib/supabase';
+import { auth0 } from '../lib/auth0';
 import Background from '../components/Background';
 
-export default function SubjectTopicsScreen({ navigation, route }) {
-    const { subject } = route.params;
+export default function NotesListScreen({ navigation, route }) {
+    const { subject, topic } = route.params;
     
-    const [topics, setTopics] = useState([]);
+    const [notes, setNotes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
-    const [newTopicName, setNewTopicName] = useState('');
+    const [newNoteTitle, setNewNoteTitle] = useState('');
+    const [newNoteContent, setNewNoteContent] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [user, setUser] = useState(null);
 
     useEffect(() => {
-        loadTopics();
+        getUserInfo();
+        loadNotes();
     }, []);
 
-    const loadTopics = async () => {
-        if (!subject?.id) return;
-        
-        setLoading(true);
-        const { data, error } = await getTopicsBySubject(subject.id);
-        
-        if (error) {
-            Alert.alert('Error', 'Failed to load topics: ' + error.message);
-        } else {
-            setTopics(data || []);
+    const getUserInfo = async () => {
+        try {
+            const userInfo = await auth0.getUser();
+            const userData = userInfo?.data?.user || userInfo;
+            setUser(userData);
+        } catch (error) {
+            console.log('Error getting user:', error);
         }
-        setLoading(false);
     };
 
-    const handleAddTopic = async () => {
-        if (!newTopicName.trim()) {
-            Alert.alert('Error', 'Please enter a topic name');
+    const loadNotes = async () => {
+        if (!topic?.id) return;
+        
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('notes')
+                .select('*')
+                .eq('topic_id', topic.id)
+                .order('upvotes', { ascending: false });
+            
+            if (error) throw error;
+            setNotes(data || []);
+        } catch (error) {
+            Alert.alert('Error', 'Failed to load notes: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddNote = async () => {
+        if (!newNoteTitle.trim()) {
+            Alert.alert('Error', 'Please enter a note title');
             return;
         }
 
-        if (!subject?.id) {
-            Alert.alert('Error', 'Subject information is missing');
+        if (!newNoteContent.trim()) {
+            Alert.alert('Error', 'Please enter note content');
+            return;
+        }
+
+        if (!user?.sub) {
+            Alert.alert('Sign In Required', 'Please sign in to add notes');
             return;
         }
 
         setSubmitting(true);
-        const { data, error } = await createTopic(subject.id, newTopicName);
-        setSubmitting(false);
+        try {
+            const { data, error } = await supabase
+                .from('notes')
+                .insert({
+                    topic_id: topic.id,
+                    subject_id: subject.id,
+                    title: newNoteTitle,
+                    content: newNoteContent,
+                    created_by: user.sub,
+                    created_by_email: user.email,
+                })
+                .select()
+                .single();
 
-        if (error) {
-            Alert.alert('Error', 'Failed to add topic: ' + error.message);
-            return;
+            if (error) throw error;
+
+            setNotes([data, ...notes]);
+            setNewNoteTitle('');
+            setNewNoteContent('');
+            setModalVisible(false);
+            Alert.alert('Success', 'Note added successfully!');
+        } catch (error) {
+            Alert.alert('Error', 'Failed to add note: ' + error.message);
+        } finally {
+            setSubmitting(false);
         }
-
-        setNewTopicName('');
-        setModalVisible(false);
-        
-        // Reload topics to ensure fresh data from database
-        await loadTopics();
-        
-        Alert.alert('Success', 'Topic added successfully!');
     };
 
     return (
@@ -74,12 +110,19 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                     <View style={styles.contentColumn}>
                         {/* Header */}
                         <View style={styles.header}>
-                            <View>
-                                <Text style={styles.title}>{subject.name}</Text>
-                                <Text style={styles.subtitle}>Topics & Lessons</Text>
+                            <TouchableOpacity 
+                                style={styles.backButton}
+                                onPress={() => navigation.goBack()}
+                                activeOpacity={0.7}
+                            >
+                                <MaterialIcons name="arrow-back-ios" size={24} color="#8E8E93" />
+                            </TouchableOpacity>
+                            <View style={styles.headerText}>
+                                <Text style={styles.title}>Notes</Text>
+                                <Text style={styles.subtitle}>{topic.name}</Text>
                             </View>
                             <TouchableOpacity 
-                                style={styles.addButton} 
+                                style={styles.addButton}
                                 onPress={() => setModalVisible(true)}
                                 activeOpacity={0.7}
                             >
@@ -87,32 +130,42 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Topics List */}
-                        <View style={[styles.section, { marginBottom: 100 }]}        >
+                        {/* Notes List */}
+                        <View style={[styles.section, { marginBottom: 100 }]}>
                             {loading ? (
                                 <View style={styles.loadingCard}>
                                     <ActivityIndicator size="large" color="#0A84FF" />
-                                    <Text style={styles.loadingText}>Loading topics...</Text>
+                                    <Text style={styles.loadingText}>Loading notes...</Text>
                                 </View>
-                            ) : topics.length === 0 ? (
+                            ) : notes.length === 0 ? (
                                 <View style={styles.emptyCard}>
-                                    <MaterialIcons name="topic" size={48} color="#8E8E93" />
-                                    <Text style={styles.emptyText}>No topics yet</Text>
-                                    <Text style={styles.emptySubtext}>Add your first topic to get started</Text>
+                                    <MaterialIcons name="description" size={48} color="#8E8E93" />
+                                    <Text style={styles.emptyText}>No notes yet</Text>
+                                    <Text style={styles.emptySubtext}>Add your first note to get started</Text>
                                 </View>
                             ) : (
-                                topics.map((topic) => (
+                                notes.map((note) => (
                                     <TouchableOpacity
-                                        key={topic.id}
-                                        style={styles.topicCard}
-                                        onPress={() => navigation.navigate('MaterialSelect', { subject, topic })}
+                                        key={note.id}
+                                        style={styles.noteCard}
+                                        onPress={() => navigation.navigate('NoteDetail', { note, subject, topic })}
                                         activeOpacity={0.8}
                                     >
-                                        <View style={styles.topicInfo}>
-                                            <Text style={styles.topicName}>{topic.name}</Text>
-                                            <Text style={styles.videoCount}>{topic.video_count || 0} videos</Text>
+                                        <View style={styles.noteContent}>
+                                            <View style={styles.noteInfo}>
+                                                <Text style={styles.noteTitle}>{note.title}</Text>
+                                                <Text style={styles.notePreview} numberOfLines={2}>
+                                                    {note.content}
+                                                </Text>
+                                            </View>
+                                            <View style={styles.noteStats}>
+                                                <View style={styles.upvoteContainer}>
+                                                    <MaterialIcons name="arrow-upward" size={16} color="#0A84FF" />
+                                                    <Text style={styles.upvoteCount}>{note.upvotes || 0}</Text>
+                                                </View>
+                                                <MaterialIcons name="chevron-right" size={24} color="#8E8E93" />
+                                            </View>
                                         </View>
-                                        <MaterialIcons name="chevron-right" size={24} color="#8E8E93" />
                                     </TouchableOpacity>
                                 ))
                             )}
@@ -120,7 +173,7 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                     </View>
                 </ScrollView>
 
-                {/* Add Topic Modal */}
+                {/* Add Note Modal */}
                 <Modal
                     animationType="slide"
                     transparent={true}
@@ -130,7 +183,7 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                     <View style={styles.modalOverlay}>
                         <View style={styles.modalContent}>
                             <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>Add New Topic</Text>
+                                <Text style={styles.modalTitle}>Add New Note</Text>
                                 <TouchableOpacity onPress={() => setModalVisible(false)}>
                                     <MaterialIcons name="close" size={24} color="#9CA3AF" />
                                 </TouchableOpacity>
@@ -138,10 +191,21 @@ export default function SubjectTopicsScreen({ navigation, route }) {
 
                             <TextInput
                                 style={styles.input}
-                                placeholder="Topic Name"
+                                placeholder="Note Title"
                                 placeholderTextColor="#6B7280"
-                                value={newTopicName}
-                                onChangeText={setNewTopicName}
+                                value={newNoteTitle}
+                                onChangeText={setNewNoteTitle}
+                            />
+
+                            <TextInput
+                                style={[styles.input, styles.textArea]}
+                                placeholder="Note Content"
+                                placeholderTextColor="#6B7280"
+                                value={newNoteContent}
+                                onChangeText={setNewNoteContent}
+                                multiline
+                                numberOfLines={6}
+                                textAlignVertical="top"
                             />
 
                             <View style={styles.modalButtons}>
@@ -149,20 +213,21 @@ export default function SubjectTopicsScreen({ navigation, route }) {
                                     style={[styles.modalButton, styles.cancelButton]}
                                     onPress={() => {
                                         setModalVisible(false);
-                                        setNewTopicName('');
+                                        setNewNoteTitle('');
+                                        setNewNoteContent('');
                                     }}
                                 >
                                     <Text style={styles.cancelButtonText}>Cancel</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={[styles.modalButton, styles.addModalButton]}
-                                    onPress={handleAddTopic}
+                                    onPress={handleAddNote}
                                     disabled={submitting}
                                 >
                                     {submitting ? (
                                         <ActivityIndicator size="small" color="#fff" />
                                     ) : (
-                                        <Text style={styles.addModalButtonText}>Add Topic</Text>
+                                        <Text style={styles.addModalButtonText}>Add Note</Text>
                                     )}
                                 </TouchableOpacity>
                             </View>
@@ -197,18 +262,32 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         marginBottom: 32,
     },
+    backButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(28, 28, 46, 0.7)',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerText: {
+        flex: 1,
+        alignItems: 'center',
+    },
     title: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#ffffff',
-        marginBottom: 4,
     },
     subtitle: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#8E8E93',
+        marginTop: 4,
     },
     addButton: {
         width: 48,
@@ -223,16 +302,13 @@ const styles = StyleSheet.create({
     section: {
         marginBottom: 32,
     },
-    topicCard: {
+    noteCard: {
         backgroundColor: 'rgba(28, 28, 46, 0.7)',
         borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
         padding: 16,
         borderRadius: 12,
         marginBottom: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
@@ -248,18 +324,39 @@ const styles = StyleSheet.create({
             }
         }),
     },
-    topicInfo: {
-        flex: 1,
+    noteContent: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
-    topicName: {
+    noteInfo: {
+        flex: 1,
+        marginRight: 12,
+    },
+    noteTitle: {
         fontSize: 18,
         fontWeight: '600',
         color: '#ffffff',
         marginBottom: 4,
     },
-    videoCount: {
+    notePreview: {
         fontSize: 14,
         color: '#8E8E93',
+        lineHeight: 20,
+    },
+    noteStats: {
+        alignItems: 'center',
+        gap: 8,
+    },
+    upvoteContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    upvoteCount: {
+        fontSize: 14,
+        color: '#0A84FF',
+        fontWeight: '600',
     },
     loadingCard: {
         backgroundColor: 'rgba(28, 28, 46, 0.7)',
@@ -332,6 +429,9 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontSize: 15,
         marginBottom: 16,
+    },
+    textArea: {
+        minHeight: 120,
     },
     modalButtons: {
         flexDirection: 'row',
