@@ -46,3 +46,8 @@ yarn-error.*
 .kiro/
 .vscode
 .idea/
+
+#add stitch folder
+stitch
+
+
