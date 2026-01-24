@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   StyleSheet,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -149,6 +150,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    ...Platform.select({ web: { paddingTop: 20 } }),
   },
   header: {
     paddingHorizontal: 16,

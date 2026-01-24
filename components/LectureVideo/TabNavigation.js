@@ -93,7 +93,7 @@ export default function TabNavigation({
 const styles = StyleSheet.create({
     tabsContainer: {
         flexDirection: 'row',
-        backgroundColor: '#1F2937',
+        backgroundColor: '#111827',
         borderBottomWidth: 1,
         borderBottomColor: '#374151',
     },

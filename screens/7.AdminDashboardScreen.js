@@ -31,7 +31,7 @@ export default function AdminDashboardScreen({ navigation }) {
             <Background />
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Main Content */}
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     {/* Header */}
                     <View style={styles.contentColumn}>
                         <View style={styles.header}>
@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
+        ...Platform.select({ web: { paddingTop: 20 } }),
     },
     scrollView: {
         flex: 1,

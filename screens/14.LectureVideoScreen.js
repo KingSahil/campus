@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Platform, KeyboardAvoidingView, StatusBar as RNStatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
+import { useFocusEffect } from '@react-navigation/native';
 import { auth0 } from '../lib/auth0';
 import { lectureVideoStyles as styles } from '../styles/LectureVideoStyles';
 import Background from '../components/Background';
@@ -36,8 +39,32 @@ export default function LectureVideoScreen({ navigation, route }) {
         topicId,
         topicName,
         subjectId,
-        subjectName
     } = route.params || {};
+
+    // Force Status Bar color on focus
+    useFocusEffect(
+        React.useCallback(() => {
+            if (Platform.OS === 'android') {
+                RNStatusBar.setBackgroundColor('#111827');
+                RNStatusBar.setBarStyle('light-content');
+            }
+        }, [])
+    );
+
+    // Configure system bars for Android (Navigation Bar)
+    useEffect(() => {
+        if (Platform.OS === 'android') {
+            const configureSystemBars = async () => {
+                try {
+                    await NavigationBar.setBackgroundColorAsync('#111827');
+                    await NavigationBar.setButtonStyleAsync('light'); // Assuming dark background
+                } catch (e) {
+                    console.log('Failed to configure navigation bar:', e);
+                }
+            };
+            configureSystemBars();
+        }
+    }, []);
 
     // Reconstruct video object
     let video = videoParam;
@@ -208,12 +235,13 @@ export default function LectureVideoScreen({ navigation, route }) {
 
     return (
         <View style={{ flex: 1 }}>
+            <StatusBar style="light" backgroundColor="#111827" translucent={false} />
             <Background />
             <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
                 <KeyboardAvoidingView
                     style={styles.keyboardAvoid}
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
+                    keyboardVerticalOffset={0}
                     enabled={activeTab === 'discussion' || activeTab === 'ai'}
                 >
                     {/* Header */}
@@ -231,6 +259,8 @@ export default function LectureVideoScreen({ navigation, route }) {
                         style={styles.contentContainer}
                         showsVerticalScrollIndicator={false}
                         stickyHeaderIndices={[1]}
+                        keyboardDismissMode="interactive"
+                        keyboardShouldPersistTaps="handled"
                     >
                         <VideoPlayer
                             ref={videoPlayerRef}

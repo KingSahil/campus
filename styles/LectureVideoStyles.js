@@ -8,6 +8,7 @@ export const lectureVideoStyles = StyleSheet.create({
             web: {
                 height: '100vh',
                 overflow: 'hidden',
+                paddingTop: 20,
             }
         })
     },
@@ -23,7 +24,7 @@ export const lectureVideoStyles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#1F2937',
+        backgroundColor: '#111827',
     },
     backButton: {
         width: 40,

@@ -115,6 +115,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         backgroundColor: '#0F172A',
+        ...Platform.select({ web: { paddingTop: 20 } }),
     },
     content: {
         width: '100%',

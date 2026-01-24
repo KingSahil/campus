@@ -537,7 +537,7 @@ export default function DashboardScreen({ navigation }) {
             <Background />
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Main Content */}
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+                <View style={[styles.scrollView, styles.scrollContent]}>
                     {/* Header */}
                     <View style={styles.contentColumn}>
                         <View style={styles.header}>
@@ -710,7 +710,7 @@ export default function DashboardScreen({ navigation }) {
                             </View>
                         </View>
                     </View>
-                </ScrollView>
+                </View>
 
                 {/* Confirmation Modal */}
                 <Modal
@@ -808,6 +808,7 @@ const styles = StyleSheet.create({
     },
     safeArea: {
         flex: 1,
+        ...Platform.select({ web: { paddingTop: 20 } }),
     },
     scrollView: {
         flex: 1,

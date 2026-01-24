@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function InputBar({
     value,
@@ -11,8 +12,10 @@ export default function InputBar({
     replyTo,
     onCancelReply
 }) {
+    const insets = useSafeAreaInsets();
+
     return (
-        <View style={styles.fixedInputBar}>
+        <View style={[styles.fixedInputBar, { paddingBottom: Math.max(12, insets.bottom + 12) }]}>
             {replyTo && (
                 <View style={styles.replyIndicator}>
                     <MaterialIcons name="reply" size={16} color="#3B82F6" />
@@ -66,7 +69,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         paddingHorizontal: 16,
         paddingVertical: 12,
-        backgroundColor: '#1F2937',
+        backgroundColor: '#111827',
         borderTopWidth: 1,
         borderTopColor: 'rgba(255,255,255,0.1)',
     },

@@ -281,6 +281,7 @@ const styles = StyleSheet.create({
     safeArea: {
         flex: 1,
         backgroundColor: '#1F2937',
+        ...Platform.select({ web: { paddingTop: 20 } }),
     },
     header: {
         flexDirection: 'row',

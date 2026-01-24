@@ -164,6 +164,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        ...Platform.select({ web: { paddingTop: 20 } }),
     },
     content: {
         width: '100%',

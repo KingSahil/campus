@@ -40,7 +40,8 @@
             "DEFAULT"
           ]
         }
-      ]
+      ],
+      "softwareKeyboardLayoutMode": "resize"
     },
     "extra": {
       "eas": {
