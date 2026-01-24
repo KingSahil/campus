@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Alert, Platform } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
+const chaptersCache = {};
+
 export const useChapters = (video, isYouTubeVideo) => {
     const [chapters, setChapters] = useState([]);
     const [loadingChapters, setLoadingChapters] = useState(false);
@@ -9,6 +11,9 @@ export const useChapters = (video, isYouTubeVideo) => {
 
     const saveChaptersToDatabase = async (chaptersData, summaryData) => {
         if (!video.id) return;
+
+        // Update Cache locally instantly
+        chaptersCache[video.id] = { chapters: chaptersData, overall_summary: summaryData };
 
         try {
             const { error } = await supabase
@@ -35,6 +40,13 @@ export const useChapters = (video, isYouTubeVideo) => {
     const fetchSavedChapters = useCallback(async () => {
         if (!video.id) return;
 
+        // Check cache first
+        if (chaptersCache[video.id]) {
+            setChapters(chaptersCache[video.id].chapters);
+            setOverallSummary(chaptersCache[video.id].overall_summary);
+            return;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('video_chapters')
@@ -53,6 +65,11 @@ export const useChapters = (video, isYouTubeVideo) => {
             if (data) {
                 setChapters(data.chapters || []);
                 setOverallSummary(data.overall_summary || '');
+                // Save to cache
+                chaptersCache[video.id] = {
+                    chapters: data.chapters || [],
+                    overall_summary: data.overall_summary || ''
+                };
                 console.log('Loaded saved chapters from database');
             }
         } catch (error) {

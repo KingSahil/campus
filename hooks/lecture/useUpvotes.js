@@ -3,6 +3,8 @@ import { Alert } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { auth0 } from '../../lib/auth0';
 
+const upvotesCache = {};
+
 export const useUpvotes = (video, user) => {
     const [upvoteCount, setUpvoteCount] = useState(0);
     const [hasUpvoted, setHasUpvoted] = useState(false);
@@ -10,9 +12,18 @@ export const useUpvotes = (video, user) => {
 
     const fetchUpvotes = useCallback(async () => {
         if (!video?.url) return;
-        try {
-            const videoId = video.url;
+        const videoId = video.url;
 
+        // Check cache
+        if (upvotesCache[videoId]) {
+            setUpvoteCount(upvotesCache[videoId].count);
+            // We still need to check user specific upvote... or we can cache that too?
+            // If we cache user specific, the cache key needs to be composite or nested.
+            // Simplified: we cache the count. User status might still need check if we don't cache it.
+            // But let's cache the user status too if we have user.sub
+        }
+
+        try {
             const { data, error, count } = await supabase
                 .from('video_upvotes')
                 .select('*', { count: 'exact' })
@@ -23,7 +34,11 @@ export const useUpvotes = (video, user) => {
                 return;
             }
 
-            setUpvoteCount(count || 0);
+            const total = count || 0;
+            setUpvoteCount(total);
+
+            // Update simple cache
+            upvotesCache[videoId] = { count: total, data: data };
 
             if (user?.sub) {
                 const userUpvote = data?.find(upvote => upvote.user_id === user.sub);
@@ -67,6 +82,9 @@ export const useUpvotes = (video, user) => {
 
                 setHasUpvoted(false);
                 setUpvoteCount(count || 0);
+                if (video?.url) {
+                    upvotesCache[video.url] = { count: count || 0, data: null }; // Data null invalidates advanced checks but count is correct
+                }
             } else {
                 const { error } = await supabase
                     .from('video_upvotes')
@@ -91,6 +109,9 @@ export const useUpvotes = (video, user) => {
 
                 setHasUpvoted(true);
                 setUpvoteCount(count || 0);
+                if (video?.url) {
+                    upvotesCache[video.url] = { count: count || 0, data: null };
+                }
             }
         } catch (error) {
             console.error('Error toggling upvote:', error);

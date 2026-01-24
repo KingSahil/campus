@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Keyboard, Alert } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
+const discussionCache = {};
+
 export const useDiscussion = (video, user) => {
     const [discussions, setDiscussions] = useState([]);
     const [loadingDiscussions, setLoadingDiscussions] = useState(false);
@@ -10,8 +12,14 @@ export const useDiscussion = (video, user) => {
     const [replyText, setReplyText] = useState('');
     const [expandedThreads, setExpandedThreads] = useState({});
 
-    const fetchDiscussions = useCallback(async () => {
+    const fetchDiscussions = useCallback(async (forceRefresh = false) => {
         if (!video?.url) return;
+
+        // Use cache if available and not forcing refresh
+        if (!forceRefresh && discussionCache[video.url]) {
+            setDiscussions(discussionCache[video.url]);
+            return;
+        }
 
         setLoadingDiscussions(true);
         try {
@@ -22,7 +30,10 @@ export const useDiscussion = (video, user) => {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setDiscussions(data || []);
+
+            const result = data || [];
+            setDiscussions(result);
+            discussionCache[video.url] = result;
         } catch (error) {
             console.error('Error fetching discussions:', error);
         } finally {

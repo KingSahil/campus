@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '../../lib/supabase';
 
+const quizCache = {};
+
 export const useQuiz = (video) => {
     const [quiz, setQuiz] = useState(null);
     const [loadingQuiz, setLoadingQuiz] = useState(false);
@@ -35,6 +37,15 @@ export const useQuiz = (video) => {
     const fetchSavedQuiz = useCallback(async () => {
         if (!video.id) return;
 
+        // Check cache
+        if (quizCache[video.id]) {
+            setQuiz(quizCache[video.id]);
+            setSelectedAnswers({});
+            setShowResults(false);
+            console.log('Loaded quiz from cache');
+            return;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('video_quizzes')
@@ -53,6 +64,9 @@ export const useQuiz = (video) => {
                 setQuiz(data.quiz_data);
                 setSelectedAnswers({});
                 setShowResults(false);
+
+                // Update cache
+                quizCache[video.id] = data.quiz_data;
                 console.log('Loaded saved quiz from database');
             }
         } catch (error) {
@@ -89,6 +103,10 @@ export const useQuiz = (video) => {
                 setQuiz(data.quiz);
                 setSelectedAnswers({});
                 setShowResults(false);
+                // Update cache
+                if (video?.id) {
+                    quizCache[video.id] = data.quiz;
+                }
                 // Save to database
                 await saveQuizToDatabase(data.quiz);
             } else {
