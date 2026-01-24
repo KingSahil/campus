@@ -3,7 +3,7 @@ import { StyleSheet, Platform } from 'react-native';
 export const lectureVideoStyles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1F2937',
+        backgroundColor: 'transparent',
         ...Platform.select({
             web: {
                 height: '100vh',

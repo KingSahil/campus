@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { auth0 } from '../lib/auth0';
 import { supabase } from '../lib/supabase';
+import Background from '../components/Background';
 
 // Helper function to generate a consistent UUID from a string
 const generateUUIDFromString = (str) => {
@@ -533,6 +534,7 @@ export default function DashboardScreen({ navigation }) {
 
     return (
         <View style={styles.container}>
+            <Background />
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Main Content */}
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>

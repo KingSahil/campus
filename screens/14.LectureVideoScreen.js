@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { auth0 } from '../lib/auth0';
 import { lectureVideoStyles as styles } from '../styles/LectureVideoStyles';
+import Background from '../components/Background';
 
 // Components
 import VideoPlayer from '../components/LectureVideo/VideoPlayer';
@@ -206,72 +207,75 @@ export default function LectureVideoScreen({ navigation, route }) {
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-            <KeyboardAvoidingView
-                style={styles.keyboardAvoid}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-                enabled={activeTab === 'discussion' || activeTab === 'ai'}
-            >
-                {/* Header */}
-                <View style={styles.header}>
-                    <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-                        <MaterialIcons name="arrow-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle} numberOfLines={1}>{video.title}</Text>
-                    <TouchableOpacity style={styles.moreButton}>
-                        <MaterialIcons name="more-vert" size={24} color="#fff" />
-                    </TouchableOpacity>
-                </View>
-
-                <ScrollView
-                    style={styles.contentContainer}
-                    showsVerticalScrollIndicator={false}
-                    stickyHeaderIndices={[1]}
+        <View style={{ flex: 1 }}>
+            <Background />
+            <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+                <KeyboardAvoidingView
+                    style={styles.keyboardAvoid}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                    enabled={activeTab === 'discussion' || activeTab === 'ai'}
                 >
-                    <VideoPlayer
-                        ref={videoPlayerRef}
-                        videoUrl={video.url}
-                        onTimeUpdate={setCurrentTime}
-                    />
-
-                    <TabNavigation
-                        activeTab={activeTab}
-                        setActiveTab={setActiveTab}
-                        upvoteCount={upvoteCount}
-                        hasUpvoted={hasUpvoted}
-                        loadingUpvote={loadingUpvote}
-                        handleUpvote={handleUpvote}
-                    />
-
-                    <View style={styles.tabContent}>
-                        {renderTabContent()}
+                    {/* Header */}
+                    <View style={styles.header}>
+                        <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+                            <MaterialIcons name="arrow-back" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <Text style={styles.headerTitle} numberOfLines={1}>{video.title}</Text>
+                        <TouchableOpacity style={styles.moreButton}>
+                            <MaterialIcons name="more-vert" size={24} color="#fff" />
+                        </TouchableOpacity>
                     </View>
-                </ScrollView>
 
-                {/* Input Bars */}
-                {activeTab === 'discussion' && (
-                    <InputBar
-                        value={replyTo ? replyText : newMessage}
-                        onChangeText={replyTo ? setReplyText : setNewMessage}
-                        onSend={replyTo ? () => postReply(replyTo) : postMessage}
-                        placeholder={replyTo ? "Write a reply..." : "Ask a question or start a discussion..."}
-                        replyTo={replyTo}
-                        onCancelReply={() => { setReplyTo(null); setReplyText(''); }}
-                    />
-                )}
+                    <ScrollView
+                        style={styles.contentContainer}
+                        showsVerticalScrollIndicator={false}
+                        stickyHeaderIndices={[1]}
+                    >
+                        <VideoPlayer
+                            ref={videoPlayerRef}
+                            videoUrl={video.url}
+                            onTimeUpdate={setCurrentTime}
+                        />
 
-                {activeTab === 'ai' && (
-                    <InputBar
-                        value={userQuestion}
-                        onChangeText={setUserQuestion}
-                        onSend={generateSummary}
-                        placeholder="Ask Anything!"
-                        loading={loadingSummary}
-                    />
-                )}
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+                        <TabNavigation
+                            activeTab={activeTab}
+                            setActiveTab={setActiveTab}
+                            upvoteCount={upvoteCount}
+                            hasUpvoted={hasUpvoted}
+                            loadingUpvote={loadingUpvote}
+                            handleUpvote={handleUpvote}
+                        />
+
+                        <View style={styles.tabContent}>
+                            {renderTabContent()}
+                        </View>
+                    </ScrollView>
+
+                    {/* Input Bars */}
+                    {activeTab === 'discussion' && (
+                        <InputBar
+                            value={replyTo ? replyText : newMessage}
+                            onChangeText={replyTo ? setReplyText : setNewMessage}
+                            onSend={replyTo ? () => postReply(replyTo) : postMessage}
+                            placeholder={replyTo ? "Write a reply..." : "Ask a question or start a discussion..."}
+                            replyTo={replyTo}
+                            onCancelReply={() => { setReplyTo(null); setReplyText(''); }}
+                        />
+                    )}
+
+                    {activeTab === 'ai' && (
+                        <InputBar
+                            value={userQuestion}
+                            onChangeText={setUserQuestion}
+                            onSend={generateSummary}
+                            placeholder="Ask Anything!"
+                            loading={loadingSummary}
+                        />
+                    )}
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </View>
     );
 }
 

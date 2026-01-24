@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '../lib/supabase';
 import { auth0 } from '../lib/auth0';
+import Background from '../components/Background';
 
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
@@ -77,7 +78,7 @@ If any field is not visible or unclear, use an empty string. Only return valid J
 
             const result = await model.generateContent([prompt, imagePart]);
             const text = result.response.text();
-            
+
             // Parse JSON response
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -171,6 +172,7 @@ If any field is not visible or unclear, use an empty string. Only return valid J
 
     return (
         <View style={styles.container}>
+            <Background />
             <SafeAreaView style={styles.safeArea} edges={['top']}>
                 {/* Header */}
                 <View style={styles.header}>
