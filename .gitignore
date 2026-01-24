@@ -47,7 +47,4 @@ yarn-error.*
 .vscode
 .idea/
 
-#add stitch folder
-stitch
-
-
+/stitch
