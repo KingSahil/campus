@@ -48,7 +48,8 @@
     "supabase": "^2.72.4"
   },
   "devDependencies": {
-    "@babel/core": "latest"
+    "@babel/core": "latest",
+    "babel-preset-expo": "^54.0.10"
   },
   "private": true
 }
